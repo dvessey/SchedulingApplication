@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane prefHeight="758.0" prefWidth="999.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.damon.schedulingapplication.Controller.CustomerReportController">
+   <children>
+      <Button fx:id="cancelButton" layoutX="905.0" layoutY="687.0" mnemonicParsing="false" onAction="#onCancel" text="Cancel" />
+      <Label layoutX="398.0" layoutY="61.0" text="Appointments for Customer by Month" />
+      <TextArea fx:id="monthlyCustomerAppointmentsTextArea" disable="true" layoutX="17.0" layoutY="100.0" prefHeight="543.0" prefWidth="965.0" promptText="No Appointments" />
+   </children>
+</AnchorPane>
