@@ -4,7 +4,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-
+/**
+ * DbConnection class to handle database connections
+ * @author Damon Vessey
+ */
 public class DbConnection {
 
     //JDBC URL
@@ -23,6 +26,11 @@ public class DbConnection {
     //Password
     private static final String password = "53689403315";
 
+    /**
+     * startConnection method to start database connection
+     * @return
+     * @throws ClassNotFoundException
+     */
     public static Connection startConnection() throws ClassNotFoundException {
         try{
             Class.forName(MYSQLJDBCDriver);
@@ -39,6 +47,10 @@ public class DbConnection {
         return conn;
     }
 
+    /**
+     * closeConnection method to close database connection
+     * @throws SQLException
+     */
     public static void closeConnection() throws SQLException {
         conn.close();
         System.out.println("Connection Closed!");

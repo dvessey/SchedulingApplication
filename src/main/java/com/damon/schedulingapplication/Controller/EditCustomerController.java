@@ -12,6 +12,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
@@ -24,6 +25,10 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ResourceBundle;
 
+/**
+ * EditCustomerController class to edit customer
+ * @author Damon Vessey
+ */
 public class EditCustomerController implements Initializable {
     public TextField custName;
     public TextField custAddress;
@@ -36,7 +41,14 @@ public class EditCustomerController implements Initializable {
     public TextField customerIdLabel;
 
     private Customers theCustomer;
+    private boolean hasErrors = false;
 
+    /**
+     * onCountrySelect method to populate states based on selected country
+     * @param actionEvent
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
     public void onCountrySelect(ActionEvent actionEvent) throws SQLException, ClassNotFoundException {
         Countries selectedCountry = countryComboBox.getSelectionModel().getSelectedItem();
         int selectedCountryId = selectedCountry.getCountry_ID();
@@ -44,40 +56,81 @@ public class EditCustomerController implements Initializable {
         stateComboBox.setItems(states);
     }
 
+    /**
+     * onSaveCustomer method to save customer to the database
+     * @param actionEvent
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     * @throws IOException
+     */
     public void onSaveCustomer(ActionEvent actionEvent) throws SQLException, ClassNotFoundException, IOException {
-        FirstLevelDivisions state = stateComboBox.getSelectionModel().getSelectedItem();
-        Countries country = countryComboBox.getSelectionModel().getSelectedItem();
+        try {
+            validateBlank();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
 
-        theCustomer.setLast_Update(Timestamp.valueOf(LocalDateTime.now()));
-        theCustomer.setLast_Updated_By(Users.getUser_name());
-        theCustomer.setCountry_ID(theCustomer.getCountry_ID());
+        try {
+            if (!hasErrors) {
+                FirstLevelDivisions state = stateComboBox.getSelectionModel().getSelectedItem();
+                Countries country = countryComboBox.getSelectionModel().getSelectedItem();
 
-        theCustomer.setCustomer_Name(custName.getText());
-        theCustomer.setAddress(custAddress.getText());
-        theCustomer.setPostal_Code(custPostalCode.getText());
-        theCustomer.setPhone(custPhoneNumber.getText());
-        theCustomer.setDivision_ID(state.getDivision_ID());
-        theCustomer.setCountry(country.getCountry());
+                theCustomer.setLast_Update(Timestamp.valueOf(LocalDateTime.now()));
 
-        CustomerDaoImpl.updateCustomer(theCustomer);
+                Users theUser = LoginController.getTheUser();
+                String userName = theUser.getUser_name();
 
-        goToCustomerScreen(actionEvent);
+                theCustomer.setLast_Updated_By(userName);
+                theCustomer.setCountry_ID(theCustomer.getCountry_ID());
+
+                theCustomer.setCustomer_Name(custName.getText());
+                theCustomer.setAddress(custAddress.getText());
+                theCustomer.setPostal_Code(custPostalCode.getText());
+                theCustomer.setPhone(custPhoneNumber.getText());
+                theCustomer.setDivision_ID(state.getDivision_ID());
+                theCustomer.setCountry(country.getCountry());
+
+                CustomerDaoImpl.updateCustomer(theCustomer);
+                goToCustomerScreen(actionEvent);
+            }
+        } catch (NullPointerException e){
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Blank fields");
+            alert.setHeaderText("No fields can be blank");
+            alert.setContentText("Please fill out the form");
+            alert.showAndWait();
+        }
 
     }
 
+    /**
+     * onCancel method to go back to the customer screen
+     * @param actionEvent
+     * @throws IOException
+     */
     public void onCancel(ActionEvent actionEvent) throws IOException {
         goToCustomerScreen(actionEvent);
     }
 
+    /**
+     * goToCustomerScreen method to go back to the customer screen
+     * @param actionEvent
+     * @throws IOException
+     */
     public void goToCustomerScreen(ActionEvent actionEvent) throws IOException {
         Parent root = FXMLLoader.load(getClass().getResource("/com/damon/schedulingapplication/customer.fxml"));
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
         Scene scene = new Scene(root, 1000, 700);
-        stage.setTitle("Appointments");
+        stage.setTitle("Customers");
         stage.setScene(scene);
         stage.show();
     }
 
+    /**
+     * initialize method to populate all fields
+     * @param url
+     * @param resourceBundle
+     */
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         theCustomer = CustomerController.getTheCustomer();
@@ -103,10 +156,8 @@ public class EditCustomerController implements Initializable {
         }
 
         try {
-          ObservableList<FirstLevelDivisions> customerDivision = CustomerDaoImpl.getFirstLevelDivisions(theCustomerCountryId);
-          //String theCustomerDivision = customerDivision.get(0).getDivision();
-          //Integer theCustomerDivisionId = customerDivision.get(0).getDivision_ID();
-          stateComboBox.setValue(customerDivision.get(0));
+          FirstLevelDivisions customerDivision = CustomerDaoImpl.getFirstLevelDivision(theCustomerDivisionId);
+          stateComboBox.setValue(customerDivision);
 
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
@@ -120,12 +171,27 @@ public class EditCustomerController implements Initializable {
 
         try {
             stateComboBox.setItems(CustomerDaoImpl.getFirstLevelDivisions(theCustomerCountryId));
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException e) {
+        } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
+    }
 
+    /**
+     * validateBlank method to ensure all fields are filled out
+     */
+    private void validateBlank() {
+        if(custName.getText().trim().isBlank() || custAddress.getText().trim().isBlank() || custPhoneNumber.getText().trim().isBlank() ||
+                custPostalCode.getText().trim().isBlank() || stateComboBox.getSelectionModel().getSelectedItem() == null || countryComboBox.getSelectionModel().getSelectedItem() == null) {
+            hasErrors=true;
+
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Blank fields");
+            alert.setHeaderText("No fields can be blank");
+            alert.setContentText("Please fill out the form");
+            alert.showAndWait();
+        } else{
+            hasErrors = false;
+        }
 
     }
 }

@@ -15,21 +15,20 @@ import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.DatePicker;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.util.ResourceBundle;
 
+/**
+ * EditAppointmentController class to handle editing appointments
+ * @author Damon Vessey
+ */
 public class EditAppointmentController implements Initializable {
     public TextField titleField;
     public TextField descriptionField;
@@ -41,47 +40,124 @@ public class EditAppointmentController implements Initializable {
     public ComboBox<LocalTime> endTimeComboBox;
     public Button saveAppointmentButton;
     public Button cancelButton;
-    public ComboBox<Customers> customerComboBox;
+    //public ComboBox<Customers> customerComboBox;
     public TextField appointmentIdLabel;
+    public TextField customerIdTextField;
+    public TextField userIdTextField;
+
+    private boolean hasErrors = false;
 
     private Appointments theAppointment;
+    private boolean isOverlap = false;
     ObservableList<LocalTime> startTime = FXCollections.observableArrayList();
     ObservableList<LocalTime> endTime = FXCollections.observableArrayList();
 
-
+    /**
+     * onSaveAppointment method to save the appointment
+     * <p><b>lambda expression to check for conflicting time overlaps</b></p>
+     * @param actionEvent
+     * @throws IOException
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
     public void onSaveAppointment(ActionEvent actionEvent) throws IOException, SQLException, ClassNotFoundException {
-        theAppointment.setTitle(titleField.getText());
-        theAppointment.setDescription(descriptionField.getText());
-        theAppointment.setLocation(locationField.getText());
-        theAppointment.setContact_ID(contactCombo.getSelectionModel().getSelectedItem().getContact_ID());
-        //Contacts contact = contactCombo.getSelectionModel().getSelectedItem();
-        LocalDate date = startDatePicker.getValue();
-        theAppointment.setType(typeField.getText());
-        LocalTime startTime = startTimeComboBox.getSelectionModel().getSelectedItem();
-        LocalTime endTime = endTimeComboBox.getSelectionModel().getSelectedItem();
-        LocalDateTime startDateTime = LocalDateTime.of(date, startTime);
-        theAppointment.setStart(startDateTime);
-        LocalDateTime endDateTime = LocalDateTime.of(date, endTime);
-        theAppointment.setEnd(endDateTime);
-        //Customers selectedCustomer = customerComboBox.getSelectionModel().getSelectedItem();
-        theAppointment.setCustomer_ID(customerComboBox.getSelectionModel().getSelectedItem().getCustomer_ID());
-        theAppointment.setCreate_Date(theAppointment.getCreate_Date());
-        theAppointment.setCreated_By(theAppointment.getCreated_By());
-        theAppointment.setLast_Update(Timestamp.valueOf(LocalDateTime.now()));
-        theAppointment.setLast_Updated_By(Users.getUser_name());
-        theAppointment.setUser_ID(Users.getUserID());
-        //int customerId = selectedCustomer.getCustomer_ID();
-        //int contactID = contact.getContact_ID();
-        //int userId = Users.getUserID();
 
-        AppointmentDaoImpl.updateAppointment(theAppointment);
-        goToHomeScreen(actionEvent);
+        try {
+            validateBlank();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
+       // try {
+            if(!hasErrors) {
+                theAppointment.setTitle(titleField.getText());
+                theAppointment.setDescription(descriptionField.getText());
+                theAppointment.setLocation(locationField.getText());
+                theAppointment.setContact_ID(contactCombo.getSelectionModel().getSelectedItem().getContact_ID());
+                LocalDate date = startDatePicker.getValue();
+                theAppointment.setType(typeField.getText());
+                LocalTime startTime = startTimeComboBox.getSelectionModel().getSelectedItem();
+                LocalTime endTime = endTimeComboBox.getSelectionModel().getSelectedItem();
+                LocalDateTime startDateTime = LocalDateTime.of(date, startTime);
+                //Timestamp startTs = Timestamp.valueOf(startDateTime);
+                theAppointment.setStart(startDateTime);
+                LocalDateTime endDateTime = LocalDateTime.of(date, endTime);
+                //Timestamp endTs = Timestamp.valueOf(endDateTime);
+                theAppointment.setEnd(endDateTime);
+                theAppointment.setCustomer_ID(Integer.parseInt(customerIdTextField.getText()));
+                theAppointment.setCreate_Date(theAppointment.getCreate_Date());
+                theAppointment.setCreated_By(theAppointment.getCreated_By());
+                theAppointment.setLast_Update(Timestamp.valueOf(LocalDateTime.now()));
+                Users theUser = LoginController.getTheUser();
+                String userName = theUser.getUser_name();
+                theAppointment.setLast_Updated_By(userName);
+                theAppointment.setUser_ID(Integer.parseInt(userIdTextField.getText()));
+
+                //GET ALL APPOINTMENTS EXCEPT THIS APPOINTMENT ID TO CHECK CONFLICTING TIMES IN DATABASE
+                //to check against business hours
+                ZonedDateTime startLocal = startDateTime.atZone(ZoneId.systemDefault());
+                ZonedDateTime endLocal = endDateTime.atZone(ZoneId.systemDefault());
+
+                //8am to 10pm EST business hours
+                ZonedDateTime businessOpen = LocalDateTime.of(date, LocalTime.of(8, 0)).atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("America/New_York"));
+                ZonedDateTime businessClosed = LocalDateTime.of(date, LocalTime.of(22, 0)).atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("America/New_York"));
+
+                if (startLocal.isBefore(businessOpen) || endLocal.isAfter(businessClosed)) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Outside of Business Hours");
+                    alert.setHeaderText("The time you've chosen is outside of business hours.");
+                    alert.setContentText("Please enter a time between 8am to 10pm EST");
+                    alert.showAndWait();
+                } else {
+                    ObservableList<Appointments> allAppointments = AppointmentDaoImpl.getAppointmentsExludingAppoinment(theAppointment.getAppointment_ID());
+
+                    allAppointments.forEach(appointment -> {
+                        LocalDateTime appointmentStart = appointment.getStart();
+                        LocalDateTime appointmentEnd = appointment.getEnd();
+
+                        //startDateTime >= appointmentStart && startDateTime < appointmentEnd
+                        if ((startDateTime.isAfter(appointmentStart) || startDateTime.isEqual(appointmentStart)) && startDateTime.isBefore(appointmentEnd)) {
+                            //overlap occurs
+                            isOverlap = true;
+                        }
+                        //endDateTime > appointmentStart && endDateTime <= appointmentEnd
+                        if (endDateTime.isAfter(appointmentStart) && (endDateTime.isBefore(appointmentEnd) || endDateTime.isEqual(appointmentEnd))) {
+                            isOverlap = true;
+                        }
+                        //startDateTime <= appointmentStart && endDateTime >= appointmentEnd
+                        if ((startDateTime.isBefore(appointmentStart) || startDateTime.isEqual(appointmentStart)) && (endDateTime.isAfter(appointmentEnd) || endDateTime.isEqual(appointmentEnd))) {
+                            isOverlap = true;
+                        }
+                    });
+
+                    if (!isOverlap && !hasErrors) {
+                        AppointmentDaoImpl.updateAppointment(theAppointment);
+                        goToHomeScreen(actionEvent);
+                    } else {
+                        Alert alert = new Alert(Alert.AlertType.ERROR);
+                        alert.setTitle("Overlapping appointments");
+                        alert.setHeaderText("An appointment is already scheduled for this time.");
+                        alert.setContentText("Please enter another time.");
+                        alert.showAndWait();
+                    }
+                }
+            }
     }
 
+    /**
+     * onCancel method to go back to home screen
+     * @param actionEvent
+     * @throws IOException
+     */
     public void onCancel(ActionEvent actionEvent) throws IOException {
         goToHomeScreen(actionEvent);
     }
 
+    /**
+     * initialize method to load all appointment data
+     * @param url
+     * @param resourceBundle
+     */
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
         theAppointment = AppointmentsController.getTheAppointment();
@@ -96,7 +172,6 @@ public class EditAppointmentController implements Initializable {
         Contacts theContact = null;
         try {
             theContact = ContactDaoImpl.getContact(theAppointment.getContact_ID());
-            System.out.println("Edit appointment initialize - contactId: " + theAppointment.getContact_ID());
             contactCombo.setValue(theContact);
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
@@ -104,19 +179,18 @@ public class EditAppointmentController implements Initializable {
 
         String theAppointmentType = theAppointment.getType();
         typeField.setText(theAppointmentType);
-        LocalDate theAppointmentStartDate = theAppointment.getStart().toLocalDate();
-        startDatePicker.setValue(theAppointmentStartDate);
-        LocalTime theAppointmentStartTime = theAppointment.getStart().toLocalTime();
-        startTimeComboBox.setValue(theAppointmentStartTime);
-        LocalTime theAppointmentEndTime = theAppointment.getEnd().toLocalTime();
-        endTimeComboBox.setValue(theAppointmentEndTime);
-        Customers theCustomer = null;
-        try {
-            theCustomer = CustomerDaoImpl.getCustomer(theAppointment.getCustomer_ID());
-            customerComboBox.setValue(theCustomer);
-        } catch (ClassNotFoundException | SQLException e) {
-            e.printStackTrace();
-        }
+        LocalDateTime theAppointmentStartDate = theAppointment.getStart();
+        startDatePicker.setValue(theAppointmentStartDate.toLocalDate());
+        LocalDateTime theAppointmentStartTime = theAppointment.getStart();
+        startTimeComboBox.setValue(theAppointmentStartTime.toLocalTime());
+        LocalDateTime theAppointmentEndTime = theAppointment.getEnd();
+        endTimeComboBox.setValue(theAppointmentEndTime.toLocalTime());
+
+        int customerId = theAppointment.getCustomer_ID();
+        customerIdTextField.setText(Integer.toString(customerId));
+
+        int userId = theAppointment.getUser_ID();
+        userIdTextField.setText(Integer.toString(userId));
 
         //populate combo boxes
         LocalTime time = LocalTime.of(0, 0);
@@ -128,15 +202,6 @@ public class EditAppointmentController implements Initializable {
         startTimeComboBox.setItems(startTime);
         endTimeComboBox.setItems(endTime);
 
-        ObservableList<Customers> customers = null;
-        try {
-            customers = CustomerDaoImpl.getCustomers();
-            customerComboBox.setItems(customers);
-        } catch (ClassNotFoundException | SQLException e) {
-            e.printStackTrace();
-        }
-
-
         ObservableList<Contacts> contacts = null;
         try {
             contacts = ContactDaoImpl.getContacts();
@@ -144,16 +209,73 @@ public class EditAppointmentController implements Initializable {
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
-
-
     }
 
+    /**
+     * goToHomeScreen method to go back to the home screen
+     * @param actionEvent
+     * @throws IOException
+     */
     public void goToHomeScreen(ActionEvent actionEvent) throws IOException {
         Parent root = FXMLLoader.load(getClass().getResource("/com/damon/schedulingapplication/appointments.fxml"));
         Stage stage = (Stage) ((Node) actionEvent.getSource()).getScene().getWindow();
-        Scene scene = new Scene(root, 1000, 700);
+        Scene scene = new Scene(root, 1105, 700);
         stage.setTitle("Appointments");
         stage.setScene(scene);
         stage.show();
+    }
+
+    /**
+     * validateBlank method to ensure all fields are filled out
+     */
+    private void validateBlank() {
+           if(titleField.getText().trim().isBlank() || titleField.getLength() == 0){
+               hasErrors=true;
+               System.out.println("Title");
+           }
+            if(descriptionField.getText().trim().isBlank() || descriptionField.getLength() == 0){
+                hasErrors=true;
+                System.out.println("Desc");
+            }
+           if(typeField.getText().trim().isBlank() || typeField.getLength() == 0){
+                hasErrors=true;
+               System.out.println("Type");
+            }
+           if(locationField.getText().trim().isBlank() || locationField.getLength() == 0){
+               hasErrors=true;
+               System.out.println("Location");
+           }
+           if(contactCombo.getSelectionModel().getSelectedItem() == null ){
+               hasErrors = true;
+               System.out.println("Contact");
+           }
+            if(customerIdTextField.getText().isBlank() || customerIdTextField.getLength() == 0){
+                hasErrors = true;
+                System.out.println("Customer");
+            }
+            if(userIdTextField.getText().isBlank() || userIdTextField.getLength() == 0){
+                hasErrors = true;
+                System.out.println("User");
+            }
+            if(startTimeComboBox.getSelectionModel().isEmpty()){
+                hasErrors = true;
+                System.out.println("Start");
+            }
+            if(endTimeComboBox.getSelectionModel().isEmpty()){
+                hasErrors = true;
+                System.out.println("End");
+            }
+            if(startDatePicker.getValue() == null){
+                hasErrors = true;
+                System.out.println("Datepicker");
+            }
+
+        if(hasErrors) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("Blank fields");
+            alert.setHeaderText("No fields can be blank");
+            alert.setContentText("Please fill out the form");
+            alert.showAndWait();
+        }
     }
 }

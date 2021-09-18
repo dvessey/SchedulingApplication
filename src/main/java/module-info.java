@@ -1,10 +1,11 @@
 module com.damon.schedulingapplication {
-    requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.controls;
+    requires javafx.graphics;
     requires java.sql;
 
 
-    opens com.damon.schedulingapplication to javafx.fxml;
+    opens com.damon.schedulingapplication to javafx.graphics;
     exports com.damon.schedulingapplication;
     exports com.damon.schedulingapplication.Model;
     opens com.damon.schedulingapplication.Model to javafx.fxml;

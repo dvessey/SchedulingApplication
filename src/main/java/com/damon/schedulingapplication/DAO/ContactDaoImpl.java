@@ -11,6 +11,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * ContactDaoImpl class to handle database transactions with contacts
+ * @author Damon Vessey
+ */
 public class ContactDaoImpl {
     public static ObservableList<Contacts> getContacts() throws ClassNotFoundException, SQLException {
         Connection conn = DbConnection.startConnection();
@@ -34,6 +38,13 @@ public class ContactDaoImpl {
 
     }
 
+    /**
+     * getContact method to retrieve contact by contact Id
+     * @param contactId
+     * @return
+     * @throws ClassNotFoundException
+     * @throws SQLException
+     */
     public static Contacts getContact(int contactId) throws ClassNotFoundException, SQLException {
         Connection conn = DbConnection.startConnection();
         String selectStatement = "SELECT * FROM contacts WHERE Contact_ID = '" + contactId + "'";

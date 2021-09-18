@@ -33,9 +33,11 @@
         <Label layoutX="118.0" layoutY="390.0" text="Date" />
         <Label layoutX="419.0" layoutY="390.0" text="Start Time" />
         <Label layoutX="727.0" layoutY="390.0" text="End Time" />
-        <ComboBox fx:id="customerComboBox" layoutX="183.0" layoutY="449.0" prefWidth="150.0" promptText="Customer" />
-        <Label layoutX="118.0" layoutY="453.0" text="Customer" />
       <TextField fx:id="appointmentIdLabel" disable="true" layoutX="183.0" layoutY="69.0" />
       <Label layoutX="89.0" layoutY="73.0" text="Appointment ID" />
+      <TextField fx:id="customerIdTextField" layoutX="183.0" layoutY="443.0" promptText="Customer ID" />
+      <TextField fx:id="userIdTextField" layoutX="183.0" layoutY="493.0" promptText="User ID" />
+      <Label layoutX="99.0" layoutY="447.0" text="Customer ID" />
+      <Label layoutX="126.0" layoutY="497.0" text="User ID" />
     </children>
 </AnchorPane>

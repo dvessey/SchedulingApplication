@@ -8,9 +8,9 @@
 <?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane fx:id="anchorPane" prefHeight="700.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.damon.schedulingapplication.Controller.AppointmentsController">
+<AnchorPane fx:id="anchorPane" prefHeight="682.0" prefWidth="1102.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.damon.schedulingapplication.Controller.AppointmentsController">
    <children>
-      <TableView fx:id="appointmentTableView" layoutX="-2.0" layoutY="120.0" prefHeight="384.0" prefWidth="1000.0">
+      <TableView fx:id="appointmentTableView" layoutX="-2.0" layoutY="120.0" prefHeight="384.0" prefWidth="1102.0">
         <columns>
           <TableColumn fx:id="appointmentIdCol" prefWidth="100.0" text="Appointment ID" />
           <TableColumn fx:id="titleCol" prefWidth="134.0" text="Title" />
@@ -19,8 +19,9 @@
             <TableColumn fx:id="contactCol" minWidth="0.0" prefWidth="56.0" text="Contact" />
             <TableColumn fx:id="typeCol" minWidth="0.0" prefWidth="107.0" text="Type" />
             <TableColumn fx:id="startCol" minWidth="0.0" prefWidth="172.0" text="Start Date/Time" />
-            <TableColumn fx:id="endCol" minWidth="0.0" prefWidth="182.0" text="End Date/Time" />
-            <TableColumn fx:id="customerIdCol" prefWidth="88.0" text="Customer ID" />
+            <TableColumn fx:id="endCol" minWidth="0.0" prefWidth="225.0" text="End Date/Time" />
+            <TableColumn fx:id="customerIdCol" prefWidth="75.0" text="Customer ID" />
+            <TableColumn fx:id="userIdCol" prefWidth="72.0" text="User ID" />
         </columns>
       </TableView>
       <RadioButton fx:id="monthView" layoutX="899.0" layoutY="94.0" mnemonicParsing="false" onAction="#onMonthView" text="Month View">
@@ -36,5 +37,6 @@
       <Label fx:id="titleLabel" layoutX="454.0" layoutY="41.0" text="APPOINTMENTS" />
       <Button fx:id="exitButton" layoutX="871.0" layoutY="645.0" mnemonicParsing="false" onAction="#onExit" prefHeight="25.0" prefWidth="80.0" text="Exit" />
       <RadioButton fx:id="allRadioButton" layoutX="748.0" layoutY="94.0" mnemonicParsing="false" onAction="#onAllView" text="All" toggleGroup="$CalenderView" />
+      <Button fx:id="generateReports" layoutX="456.0" layoutY="606.0" mnemonicParsing="false" onAction="#onGenerateReports" text="Show Reports" />
    </children>
 </AnchorPane>
